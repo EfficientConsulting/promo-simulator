@@ -3,7 +3,6 @@
 
 import { useState } from 'react';
 import { calculatePromo } from '@/lib/calculator';
-import { AlertTriangle, TrendingUp, CheckCircle, Flame } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { AlertTriangle, TrendingUp, CheckCircle, Flame, Check } from 'lucide-react';
 
