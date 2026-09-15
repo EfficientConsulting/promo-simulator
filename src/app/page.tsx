@@ -4,6 +4,8 @@
 import { useState } from 'react';
 import { calculatePromo } from '@/lib/calculator';
 import { AlertTriangle, TrendingUp, CheckCircle, Flame } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { AlertTriangle, TrendingUp, CheckCircle, Flame, Check } from 'lucide-react';
 
 export default function Home() {
   const [itemName, setItemName] = useState('Smash Burger');
@@ -12,7 +14,38 @@ export default function Home() {
   const [normalUnits, setNormalUnits] = useState<number>(100);
   const [discountType, setDiscountType] = useState<'PERCENT' | 'DOLLAR'>('PERCENT');
   const [discountValue, setDiscountValue] = useState<number>(20);
-  const [isDeliveryApp, setIsDeliveryApp] = useState<boolean>(false);
+  const [isDeliveryApp, setIsDeliveryApp] = useState<boolean>(false);const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleWaitlistSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!email || !email.includes('@')) {
+    setErrorMessage('Please enter a valid email address.');
+    return;
+  }
+
+  setIsSubmitting(true);
+  setErrorMessage('');
+
+  const { error } = await supabase
+    .from('waitlist')
+    .insert([{ email }]);
+
+  setIsSubmitting(false);
+
+  if (error) {
+    // Code 23505 is PostgreSQL unique constraint violation
+    if (error.code === '23505') {
+      setSubmitted(true);
+    } else {
+      setErrorMessage('Something went wrong. Please try again.');
+    }
+  } else {
+    setSubmitted(true);
+  }
+};  
 
   const results = calculatePromo({
     itemName,
@@ -185,19 +218,47 @@ export default function Home() {
                 </>
               )}
             </div>
-
             {/* Soft Beta Signup Footer */}
-            <div className="bg-slate-900 text-white p-5 rounded-2xl flex items-center justify-between">
-              <div>
-                <p className="text-xs text-slate-300">Don't want to type your menu manually?</p>
-                <p className="text-sm font-semibold">Join the Toast / Square integration beta</p>
-              </div>
-              <button 
-                onClick={() => alert("Enter your email flow or Typeform link here!")}
-                className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition"
-              >
-                Join Waitlist
-              </button>
+            <div className="bg-slate-900 text-white p-6 rounded-2xl">
+              {submitted ? (
+                <div className="flex items-center gap-3 text-emerald-400 py-1">
+                  <Check className="w-5 h-5 flex-shrink-0" />
+                  <div>
+                    <p className="font-bold text-sm">You are on the list!</p>
+                    <p className="text-xs text-slate-300">We will notify you when POS integrations launch.</p>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="mb-3">
+                    <p className="text-xs text-slate-400 font-medium">Don't want to type your menu manually?</p>
+                    <p className="text-sm font-semibold">Join the Toast / Square integration beta</p>
+                  </div>
+
+                  <form onSubmit={handleWaitlistSubmit} className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="email"
+                      required
+                      placeholder="operator@restaurant.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={isSubmitting}
+                      className="flex-1 px-3 py-2 bg-slate-800 text-white border border-slate-700 rounded-lg text-sm placeholder:text-slate-500 outline-none focus:border-blue-500"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-semibold px-4 py-2 rounded-lg transition sm:w-auto w-full cursor-pointer"
+                    >
+                      {isSubmitting ? 'Saving...' : 'Join Waitlist'}
+                    </button>
+                  </form>
+
+                  {errorMessage && (
+                    <p className="text-xs text-rose-400 mt-2 font-medium">{errorMessage}</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
